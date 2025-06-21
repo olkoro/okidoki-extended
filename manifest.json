@@ -1,0 +1,40 @@
+{
+  "manifest_version": 3,
+  "name": "okidoki extended edition",
+  "version": "1.0",
+  "description": "allows hiding unwanted items",
+  "icons": {
+    "16": "images/icon-16.png",
+    "32": "images/icon-32.png",
+    "48": "images/oki48.png",
+    "128": "images/oki128.png"
+  },
+  "content_scripts": [
+    {
+      "js": ["scripts/buy.js"],
+      "run_at": "document_idle",
+      "matches": [
+        "https://www.okidoki.ee/ru/buy/*",
+        "https://www.okidoki.ee/buy/*"
+      ]
+    },
+    {
+      "js": ["scripts/item.js"],
+      "run_at": "document_idle",
+      "matches": [
+        "https://www.okidoki.ee/ru/item/*",
+        "https://www.okidoki.ee/item/*"
+      ]
+    }
+  ],
+  "permissions": [
+    "scripting"
+  ],
+  "host_permissions": [
+    "https://www.okidoki.ee/*"
+  ],
+  "action": {
+    "default_popup": "hello.html",
+    "default_icon": "images/icon-16.png"
+  }
+}
