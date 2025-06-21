@@ -8,6 +8,7 @@ const unhideTextRu = 'Убрать из скрытых';
 const unhideTextEt = 'Eemalda peidust';
 
 const HIDDEN_ITEMS_KEY = 'hiddenItems';
+
 function getLocale() {
     try {
         const parsedUrl = new URL(window.location.href);
@@ -20,6 +21,7 @@ function getLocale() {
         return 'ee';
     }
 }
+
 function updateTitle(isRemoved) {
     document.querySelectorAll('.item-title').forEach(itemTitle => {
         if (isRemoved) {
@@ -42,7 +44,6 @@ function updateTitle(isRemoved) {
     let isHidden = hiddenItems.includes(itemId);
     updateTitle(isHidden);
 
-    // Create button
     const toggleBtn = document.createElement('button');
     toggleBtn.className = 'ok-round-button ok-round-button--tools';
     toggleBtn.title = isHidden
@@ -156,6 +157,7 @@ function addHideUsersAllItemsButton() {
         }
     });
 }
+
 function sleep(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
 }
