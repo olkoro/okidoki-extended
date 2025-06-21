@@ -136,6 +136,7 @@ function addHideUsersAllItemsButton() {
         }
     } else {
         console.log('Could not determine item count.');
+        return;
     }
 
     const btn = document.createElement('a');

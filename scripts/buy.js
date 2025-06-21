@@ -1,4 +1,3 @@
-console.log("content script running");
 let hiddenCount = 0;
 let showingHidden = JSON.parse(localStorage.getItem('showingHidden')) || false;
 const HIDDEN_ITEMS_KEY = 'hiddenItems';
@@ -153,7 +152,6 @@ function insertHiddenCount(count) {
 
     toggleLink.addEventListener('click', (e) => {
         e.preventDefault();
-        console.log('clicked')
         applyHiddenToggle();
         showingHidden = !showingHidden;
         localStorage.setItem('showingHidden', JSON.stringify(showingHidden));

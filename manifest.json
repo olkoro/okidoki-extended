@@ -34,7 +34,7 @@
     "https://www.okidoki.ee/*"
   ],
   "action": {
-    "default_popup": "hello.html",
+    "default_popup": "popup.html",
     "default_icon": "images/icon-16.png"
   }
 }
