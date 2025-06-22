@@ -1,4 +1,5 @@
 const locale = getLocale();
+let showingHidden = false;
 
 const hideAllUsersTextEt = 'Peida kõik kasutaja kuulutused';
 const hideAllUsersTextRu = 'Скрыть все объявления пользователя';
@@ -8,14 +9,22 @@ const unhideTextRu = 'Убрать из скрытых';
 const unhideTextEt = 'Eemalda peidust';
 
 const HIDDEN_ITEMS_KEY = 'hiddenItems';
+const SHOWING_HIDDEN_KEY = 'showingHidden';
 
-function getHiddenItems() {
-    return new Promise((resolve) => {
-        chrome.storage.local.get([HIDDEN_ITEMS_KEY], (result) => {
-            resolve(result[HIDDEN_ITEMS_KEY] || []);
-        });
-    });
+(async function getShowingHidden() {
+    showingHidden = await getStorageData(SHOWING_HIDDEN_KEY) || false;
+})();
+
+async function getHiddenItems() {
+    const result = await chrome.storage.local.get([HIDDEN_ITEMS_KEY]);
+    return result[HIDDEN_ITEMS_KEY] || [];
 }
+
+async function getStorageData(key) {
+    const result = await chrome.storage.local.get([key]);
+    return result[key];
+}
+
 
 function saveHiddenItems(items) {
     return new Promise((resolve) => {
@@ -67,22 +76,25 @@ function updateTitle(isRemoved) {
     toggleBtn.textContent = isHidden ? '✚' : '🗙';
 
     toggleBtn.addEventListener('click', async () => {
-        const hiddenItems = await getHiddenItems();
-        const updated = new Set(hiddenItems);
+        const hiddenItemsSet = new Set(await getHiddenItems());
 
-        if (updated.has(itemId)) {
-            updated.delete(itemId);
+        if (hiddenItemsSet.has(itemId)) {
+            hiddenItemsSet.delete(itemId);
             toggleBtn.textContent = '🗙';
             toggleBtn.title = locale === 'ru' ? hideTextRu : hideTextEt;
             updateTitle(false);
+            await saveHiddenItems([...hiddenItemsSet]);
         } else {
-            updated.add(itemId);
+            hiddenItemsSet.add(itemId);
             toggleBtn.textContent = '✚';
             toggleBtn.title = locale === 'ru' ? unhideTextRu : unhideTextEt;
             updateTitle(true);
+            await saveHiddenItems([...hiddenItemsSet]);
+            if (!showingHidden) {
+                history.back();
+            }
         }
 
-        await saveHiddenItems([...updated]);
     });
 
     buttonsContainer.appendChild(toggleBtn);
@@ -139,7 +151,7 @@ function addHideUsersAllItemsButton() {
         const totalItems = Number(userItemsMatch[1].replace(/\s+/g, ''));
         const pagesAmount = Math.ceil(totalItems / 200);
         for (let i = 1; i <= pagesAmount; i++) {
-            fullUrl.searchParams.set('p', i);
+            fullUrl.searchParams.set('p', i.toString());
             let pageUrl = fullUrl.pathname + '?' + fullUrl.searchParams.toString();
             urls.push(pageUrl);
         }
@@ -160,7 +172,7 @@ function addHideUsersAllItemsButton() {
     btn.addEventListener('click', async function (e) {
         e.preventDefault();
         for (const url of urls) {
-            hidePageItems(url);
+            await hidePageItems(url);
             await sleep(1000);
         }
     });
@@ -171,4 +183,3 @@ function sleep(ms) {
 }
 
 addHideUsersAllItemsButton();
-

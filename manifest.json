@@ -29,7 +29,8 @@
   ],
   "permissions": [
     "scripting",
-    "storage"
+    "storage",
+    "history"
   ],
   "host_permissions": [
     "https://www.okidoki.ee/*"
