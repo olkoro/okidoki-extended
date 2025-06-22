@@ -1,16 +1,11 @@
 const SHOWING_HIDDEN_KEY = 'showingHidden';
 const HIDDEN_ITEMS_KEY = 'hiddenItems';
-const locale = getLocale();
-const allItemIds = getAllItemIds();
-let hidingHistory = []
-let showingHidden = false;
 const hideItemSvg = `
           <svg class="fav-button__icon" width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
             <line x1="18" y1="6" x2="6" y2="18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
             <line x1="6" y1="6" x2="18" y2="18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
           </svg>
         `;
-
 const showItemSvg = `
           <svg class="fav-button__icon" width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
             <line x1="12" y1="5" x2="12" y2="19" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
@@ -30,6 +25,9 @@ const hideTextBtnRu = 'Скрыть';
 const hideTextBtnEt = 'Peida';
 const unhideTextRu = 'Убрать из скрытых';
 const unhideTextEt = 'Eemalda peidust';
+
+let hidingHistory = []
+let showingHidden = false;
 
 async function getStorageData(key) {
     try {
@@ -279,7 +277,8 @@ async function addHiddenCount() {
     topDiv.insertBefore(wrapper, viewManageEl);
 }
 
-hideAds();
+const locale = getLocale();
+const allItemIds = getAllItemIds();
 
 (async () => {
     hideAds();

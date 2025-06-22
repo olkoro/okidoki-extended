@@ -1,37 +1,16 @@
-const locale = getLocale();
-let showingHidden = false;
+const HIDDEN_ITEMS_KEY = 'hiddenItems';
+const SHOWING_HIDDEN_KEY = 'showingHidden';
 
-const hideAllUsersTextEt = 'Peida kõik kasutaja kuulutused';
 const hideAllUsersTextRu = 'Скрыть все объявления пользователя';
+const hideAllUsersTextEt = 'Peida kõik kasutaja kuulutused';
 const hideTextRu = 'Скрыть';
 const hideTextEt = 'Peida';
 const unhideTextRu = 'Убрать из скрытых';
 const unhideTextEt = 'Eemalda peidust';
 
-const HIDDEN_ITEMS_KEY = 'hiddenItems';
-const SHOWING_HIDDEN_KEY = 'showingHidden';
-
-(async function getShowingHidden() {
-    showingHidden = await getStorageData(SHOWING_HIDDEN_KEY) || false;
-})();
-
-async function getHiddenItems() {
-    const result = await chrome.storage.local.get([HIDDEN_ITEMS_KEY]);
-    return result[HIDDEN_ITEMS_KEY] || [];
+function sleep(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
 }
-
-async function getStorageData(key) {
-    const result = await chrome.storage.local.get([key]);
-    return result[key];
-}
-
-
-function saveHiddenItems(items) {
-    return new Promise((resolve) => {
-        chrome.storage.local.set({[HIDDEN_ITEMS_KEY]: items}, resolve);
-    });
-}
-
 
 function getLocale() {
     try {
@@ -46,6 +25,23 @@ function getLocale() {
     }
 }
 
+async function getStorageData(key) {
+    const result = await chrome.storage.local.get([key]);
+    return result[key];
+}
+
+async function getHiddenItems() {
+    const result = await chrome.storage.local.get([HIDDEN_ITEMS_KEY]);
+    return result[HIDDEN_ITEMS_KEY] || [];
+}
+
+
+function saveHiddenItems(items) {
+    return new Promise((resolve) => {
+        chrome.storage.local.set({[HIDDEN_ITEMS_KEY]: items}, resolve);
+    });
+}
+
 function updateTitle(isRemoved) {
     document.querySelectorAll('.item-title').forEach(itemTitle => {
         if (isRemoved) {
@@ -55,6 +51,46 @@ function updateTitle(isRemoved) {
         }
     });
 }
+
+async function hidePageItems(pageUrl) {
+    try {
+        const response = await fetch(pageUrl);
+        const htmlText = await response.text();
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(htmlText, 'text/html');
+
+        const items = doc.querySelectorAll('li.classifieds__item');
+
+        if (!items.length) {
+            alert('No items found.');
+            return;
+        }
+
+        const hiddenItems = await getHiddenItems();
+        const updatedItems = [...hiddenItems];
+
+        items.forEach(item => {
+            const favBtn = item.querySelector('button.fav-button[data-iid]');
+            if (favBtn) {
+                const id = favBtn.getAttribute('data-iid');
+                if (id && !updatedItems.includes(id)) {
+                    updatedItems.push(id);
+                }
+            }
+        });
+
+        await saveHiddenItems(updatedItems);
+    } catch (err) {
+        alert('Failed to load or parse items: ' + err);
+    }
+}
+
+const locale = getLocale();
+let showingHidden = false;
+
+(async function getShowingHidden() {
+    showingHidden = await getStorageData(SHOWING_HIDDEN_KEY) || false;
+})();
 
 (async function addHideToggleButton() {
     const match = window.location.pathname.match(/\/item\/[^/]+\/(\d+)\//);
@@ -100,41 +136,7 @@ function updateTitle(isRemoved) {
     buttonsContainer.appendChild(toggleBtn);
 })();
 
-
-async function hidePageItems(pageUrl) {
-    try {
-        const response = await fetch(pageUrl);
-        const htmlText = await response.text();
-        const parser = new DOMParser();
-        const doc = parser.parseFromString(htmlText, 'text/html');
-
-        const items = doc.querySelectorAll('li.classifieds__item');
-
-        if (!items.length) {
-            alert('No items found.');
-            return;
-        }
-
-        const hiddenItems = await getHiddenItems();
-        const updatedItems = [...hiddenItems];
-
-        items.forEach(item => {
-            const favBtn = item.querySelector('button.fav-button[data-iid]');
-            if (favBtn) {
-                const id = favBtn.getAttribute('data-iid');
-                if (id && !updatedItems.includes(id)) {
-                    updatedItems.push(id);
-                }
-            }
-        });
-
-        await saveHiddenItems(updatedItems);
-    } catch (err) {
-        alert('Failed to load or parse items: ' + err);
-    }
-}
-
-function addHideUsersAllItemsButton() {
+(function addHideUsersAllItemsButton() {
     const footer = document.querySelector('.user-block__popup-footer');
     const userLink = footer.querySelector('a[href*="/buy/all/"]');
     let baseUrl = userLink.getAttribute('href');
@@ -176,10 +178,4 @@ function addHideUsersAllItemsButton() {
             await sleep(1000);
         }
     });
-}
-
-function sleep(ms) {
-    return new Promise(resolve => setTimeout(resolve, ms));
-}
-
-addHideUsersAllItemsButton();
+})()
