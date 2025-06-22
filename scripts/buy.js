@@ -13,12 +13,12 @@ const showItemSvg = `
           </svg>
         `;
 
-const hideAgainTextRu = '[Скрыть]';
-const hideAgainTextEt = '[Peida]';
-const showTextRu = '[Показать скрытые]';
-const showTextEt = '[Näita peidetud]';
-const cancelTextRu = '[Отменить]';
-const cancelTextEt = '[Tühistama]';
+const hideAgainTextRu = 'Скрыть';
+const hideAgainTextEt = 'Peida';
+const showTextRu = 'Показать скрытые';
+const showTextEt = 'Näita peidetud';
+const cancelTextRu = 'Отменить';
+const cancelTextEt = 'Tühistama';
 const hiddenTextRu = `скрыто`;
 const hiddenTextEt = `peidetud`;
 const hideTextBtnRu = 'Скрыть';
@@ -193,7 +193,7 @@ function createShowHiddenToggle() {
         ? (locale === 'ru' ? hideAgainTextRu : hideAgainTextEt)
         : (locale === 'ru' ? showTextRu : showTextEt);
     toggleLink.style.cursor = 'pointer';
-    toggleLink.style.color = '#0073e6';
+    toggleLink.style.color = 'var(--Text-link)';
     toggleLink.style.textDecoration = 'none';
     toggleLink.style.fontSize = '14px';
 
@@ -222,7 +222,7 @@ function createCancel() {
     unhideLastLink.href = '#';
     unhideLastLink.textContent = locale === 'ru' ? cancelTextRu : cancelTextEt;
     unhideLastLink.style.cursor = 'pointer';
-    unhideLastLink.style.color = '#0073e6';
+    unhideLastLink.style.color = 'var(--Text-link)';
     unhideLastLink.style.textDecoration = 'none';
     unhideLastLink.style.fontSize = '14px';
 
