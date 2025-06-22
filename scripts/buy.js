@@ -13,10 +13,10 @@ const showItemSvg = `
           </svg>
         `;
 
-const hideAgainTextRu = 'Скрыть';
+const hideAgainTextRu = 'Скрыть снова';
 const hideAgainTextEt = 'Peida';
-const showTextRu = 'Показать скрытые';
-const showTextEt = 'Näita peidetud';
+const showTextRu = 'Показать';
+const showTextEt = 'Näita';
 const cancelTextRu = 'Отменить';
 const cancelTextEt = 'Tühistama';
 const hiddenTextRu = `скрыто`;
@@ -264,11 +264,11 @@ async function addHiddenCount() {
     const hiddenInfo = document.createElement('span');
     hiddenInfo.textContent = `${count} ${locale === 'ru' ? hiddenTextRu : hiddenTextEt}`;
 
-    const toggleLink = createShowHiddenToggle();
-
-    wrapper.appendChild(hiddenInfo);
-    wrapper.appendChild(toggleLink);
-
+    if (count > 0) {
+        wrapper.appendChild(hiddenInfo);
+        const toggleLink = createShowHiddenToggle();
+        wrapper.appendChild(toggleLink);
+    }
     if (hidingHistory.length > 0) {
         const unhideLastLink = createCancel();
         wrapper.appendChild(unhideLastLink);

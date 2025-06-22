@@ -7,6 +7,8 @@ const hideTextRu = 'Скрыть';
 const hideTextEt = 'Peida';
 const unhideTextRu = 'Убрать из скрытых';
 const unhideTextEt = 'Eemalda peidust';
+const hidingInProcessTextRu = 'Объявления скрываются';
+const hidingInProcessTextEt = 'Kulutused eemaldatakse';
 
 function sleep(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
@@ -173,9 +175,25 @@ let showingHidden = false;
 
     btn.addEventListener('click', async function (e) {
         e.preventDefault();
+        btn.textContent = locale === 'ru' ? `${hidingInProcessTextRu}...0%` : `${hidingInProcessTextEt}...0%`;
         for (const url of urls) {
-            await hidePageItems(url);
-            await sleep(1000);
+            try {
+                const percentage = Math.floor((urls.indexOf(url) + 1) / urls.length * 100);
+                btn.textContent = locale === 'ru'
+                    ? `${hidingInProcessTextRu}...${percentage}%`
+                    : `${hidingInProcessTextEt}...${percentage}%`;
+                await hidePageItems(url);
+                await sleep(500);
+            } catch (error) {
+                btn.textContent = 'Error processing url';
+                await sleep(1000);
+            }
+
+        }
+        btn.textContent = locale === 'ru' ? hideAllUsersTextRu : hideAllUsersTextEt;
+        updateTitle(true);
+        if (!showingHidden) {
+            history.back();
         }
     });
 })()
