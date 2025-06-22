@@ -3,7 +3,7 @@ const HIDDEN_ITEMS_KEY = 'hiddenItems';
 const locale = getLocale();
 const allItemIds = getAllItemIds();
 let hidingHistory = []
-let showingHidden = JSON.parse(localStorage.getItem(SHOWING_HIDDEN_KEY)) || false;
+let showingHidden = false;
 const hideItemSvg = `
           <svg class="fav-button__icon" width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
             <line x1="18" y1="6" x2="6" y2="18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
@@ -31,6 +31,30 @@ const hideTextBtnEt = 'Peida';
 const unhideTextRu = 'Убрать из скрытых';
 const unhideTextEt = 'Eemalda peidust';
 
+async function getStorageData(key) {
+    try {
+        const result = await chrome.storage.local.get([key]);
+        return result[key];
+    } catch (error) {
+        console.error(`Error getting ${key} from storage:`, error);
+        return null;
+    }
+}
+
+async function setStorageData(key, value) {
+    try {
+        await chrome.storage.local.set({[key]: value});
+    } catch (error) {
+        console.error(`Error setting ${key} in storage:`, error);
+    }
+}
+
+async function initialize() {
+    showingHidden = await getStorageData(SHOWING_HIDDEN_KEY) || false;
+    await processItems();
+    await addHiddenCount();
+}
+
 function getLocale() {
     try {
         const parsedUrl = new URL(window.location.href);
@@ -44,48 +68,48 @@ function getLocale() {
     }
 }
 
-function addToHiddenItemStorage(itemId) {
-    let hiddenItems = JSON.parse(localStorage.getItem(HIDDEN_ITEMS_KEY) || '[]');
+async function addToHiddenItemStorage(itemId) {
+    const hiddenItems = await getStorageData(HIDDEN_ITEMS_KEY) || [];
     if (!hiddenItems.includes(itemId)) {
         hiddenItems.push(itemId);
-        localStorage.setItem(HIDDEN_ITEMS_KEY, JSON.stringify(hiddenItems));
+        await setStorageData(HIDDEN_ITEMS_KEY, hiddenItems);
     }
 }
 
-function removeFromHiddenItemsStorage(itemId) {
-    let hiddenItems = JSON.parse(localStorage.getItem(HIDDEN_ITEMS_KEY) || '[]');
-    hiddenItems = hiddenItems.filter(id => id !== itemId);
-    localStorage.setItem(HIDDEN_ITEMS_KEY, JSON.stringify(hiddenItems));
+async function removeFromHiddenItemsStorage(itemId) {
+    const hiddenItems = await getStorageData(HIDDEN_ITEMS_KEY) || [];
+    const filtered = hiddenItems.filter(id => id !== itemId);
+    await setStorageData(HIDDEN_ITEMS_KEY, filtered);
 }
 
-function isInHiddenItemsStorage(itemId) {
-    let hiddenItems = JSON.parse(localStorage.getItem(HIDDEN_ITEMS_KEY) || '[]');
+async function isInHiddenItemsStorage(itemId) {
+    const hiddenItems = await getStorageData(HIDDEN_ITEMS_KEY) || [];
     return hiddenItems.includes(itemId);
 }
 
-function getAllHiddenItemsStorage() {
-    return JSON.parse(localStorage.getItem(HIDDEN_ITEMS_KEY) || '[]');
+async function getAllHiddenItemsStorage() {
+    return await getStorageData(HIDDEN_ITEMS_KEY) || [];
 }
 
-function hideItem(content, card, itemId, favDiv) {
-    addToHiddenItemStorage(itemId);
-    applyHiddenStyle(content, card, itemId, favDiv);
+async function hideItem(content, card, itemId, favDiv) {
+    await addToHiddenItemStorage(itemId);
+    await applyHiddenStyle(content, card, itemId, favDiv);
     hidingHistory.push(itemId);
-    addHiddenCount();
+    await addHiddenCount();
 }
 
-function showItem(content, card, itemId, favDiv) {
-    removeFromHiddenItemsStorage(itemId);
-    applyShownStyle(content, card, itemId, favDiv);
+async function showItem(content, card, itemId, favDiv) {
+    await removeFromHiddenItemsStorage(itemId);
+    await applyShownStyle(content, card, itemId, favDiv);
     hidingHistory = hidingHistory.filter(id => id !== itemId);
-    addHiddenCount();
+    await addHiddenCount();
 }
 
-function addHideToggle(content, card, itemId, favDiv) {
+async function addHideToggle(content, card, itemId, favDiv) {
     const oldToggle = document.getElementById(`hide-item-button-${itemId}`);
     if (oldToggle) oldToggle.remove();
 
-    let isHidden = isInHiddenItemsStorage(itemId);
+    const isHidden = await isInHiddenItemsStorage(itemId);
     const hideBtn = document.createElement('button');
     hideBtn.id = `hide-item-button-${itemId}`;
     hideBtn.textContent = isHidden
@@ -97,18 +121,18 @@ function addHideToggle(content, card, itemId, favDiv) {
 
     hideBtn.innerHTML = isHidden ? showItemSvg : hideItemSvg;
 
-    hideBtn.addEventListener('click', (e) => {
+    hideBtn.addEventListener('click', async () => {
         if (isHidden) {
-            showItem(content, card, itemId, favDiv);
+            await showItem(content, card, itemId, favDiv);
         } else {
-            hideItem(content, card, itemId, favDiv);
+            await hideItem(content, card, itemId, favDiv);
         }
     });
 
     favDiv.appendChild(hideBtn);
 }
 
-function applyHiddenStyle(content, card, itemId, favDiv) {
+async function applyHiddenStyle(content, card, itemId, favDiv) {
     if (showingHidden) {
         card.style.display = '';
         content.style.color = '#999';
@@ -116,31 +140,30 @@ function applyHiddenStyle(content, card, itemId, favDiv) {
         card.style.display = 'none';
         window.dispatchEvent(new Event('scroll'));
     }
-    addHideToggle(content, card, itemId, favDiv);
+    await addHideToggle(content, card, itemId, favDiv);
 }
 
-function applyShownStyle(content, card, itemId, favDiv) {
+async function applyShownStyle(content, card, itemId, favDiv) {
     card.style.display = '';
     content.style.color = '';
-    addHideToggle(content, card, itemId, favDiv);
+    await addHideToggle(content, card, itemId, favDiv);
 }
 
-function processItems() {
-    document.querySelectorAll('.horiz-offer-card__actions-item--favorites')
-        .forEach(favDiv => {
-            const favButton = favDiv.querySelector('button.fav-button');
-            const card = favButton.closest('.classifieds__item');
-            let content = favButton.closest('.horiz-offer-card__content');
-            if (!card || !favButton || !content) {
-                return;
-            }
-            const itemId = favButton.getAttribute('data-iid');
-            if (isInHiddenItemsStorage(itemId)) {
-                applyHiddenStyle(content, card, itemId, favDiv);
-            } else {
-                applyShownStyle(content, card, itemId, favDiv);
-            }
-        });
+async function processItems() {
+    for (const favDiv of document.querySelectorAll('.horiz-offer-card__actions-item--favorites')) {
+        const favButton = favDiv.querySelector('button.fav-button');
+        const card = favButton.closest('.classifieds__item');
+        let content = favButton.closest('.horiz-offer-card__content');
+        if (!card || !favButton || !content) {
+            continue;
+        }
+        const itemId = favButton.getAttribute('data-iid');
+        if (await isInHiddenItemsStorage(itemId)) {
+            await applyHiddenStyle(content, card, itemId, favDiv);
+        } else {
+            await applyShownStyle(content, card, itemId, favDiv);
+        }
+    }
 }
 
 function getAllItemIds() {
@@ -183,11 +206,11 @@ function createShowHiddenToggle() {
         toggleLink.style.textDecoration = 'none';
     });
 
-    toggleLink.addEventListener('click', (e) => {
+    toggleLink.addEventListener('click', async (e) => {
         e.preventDefault();
         showingHidden = !showingHidden;
-        localStorage.setItem(SHOWING_HIDDEN_KEY, JSON.stringify(showingHidden));
-        processItems();
+        await setStorageData(SHOWING_HIDDEN_KEY, showingHidden);
+        await processItems();
         toggleLink.textContent = showingHidden
             ? (locale === 'ru' ? hideAgainTextRu : hideAgainTextEt)
             : (locale === 'ru' ? showTextRu : showTextEt);
@@ -212,25 +235,24 @@ function createCancel() {
         unhideLastLink.style.textDecoration = 'none';
     });
 
-    unhideLastLink.addEventListener('click', (e) => {
+    unhideLastLink.addEventListener('click', async (e) => {
         e.preventDefault();
-        const removed = JSON.parse(localStorage.getItem(HIDDEN_ITEMS_KEY) || '[]');
+        const removed = await getStorageData(HIDDEN_ITEMS_KEY) || [];
         let lastHiddenItemId = removed.pop();
-        removeFromHiddenItemsStorage(lastHiddenItemId);
+        await removeFromHiddenItemsStorage(lastHiddenItemId);
         hidingHistory = hidingHistory.filter(id => id !== lastHiddenItemId);
-        processItems();
-        addHiddenCount();
+        await processItems();
+        await addHiddenCount();
     });
     return unhideLastLink;
 }
 
-
-function addHiddenCount() {
+async function addHiddenCount() {
     const topDiv = document.querySelector('.top');
     const viewManageEl = topDiv.querySelector('.view-manage');
 
-    let allHiddenItemIds = getAllHiddenItemsStorage();
-    let count = allHiddenItemIds.filter(id => allItemIds.includes(id)).length;
+    const allHiddenItemIds = await getAllHiddenItemsStorage();
+    const count = allHiddenItemIds.filter(id => allItemIds.includes(id)).length;
 
     const oldCounter = document.getElementById('hidden-counter');
     if (oldCounter) oldCounter.remove();
@@ -257,7 +279,11 @@ function addHiddenCount() {
     topDiv.insertBefore(wrapper, viewManageEl);
 }
 
-
 hideAds();
-processItems();
-addHiddenCount();
+
+(async () => {
+    hideAds();
+    await initialize();
+})().catch(error => {
+    console.error('Initialization failed:', error);
+});

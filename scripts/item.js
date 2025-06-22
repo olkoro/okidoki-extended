@@ -9,6 +9,21 @@ const unhideTextEt = 'Eemalda peidust';
 
 const HIDDEN_ITEMS_KEY = 'hiddenItems';
 
+function getHiddenItems() {
+    return new Promise((resolve) => {
+        chrome.storage.local.get([HIDDEN_ITEMS_KEY], (result) => {
+            resolve(result[HIDDEN_ITEMS_KEY] || []);
+        });
+    });
+}
+
+function saveHiddenItems(items) {
+    return new Promise((resolve) => {
+        chrome.storage.local.set({[HIDDEN_ITEMS_KEY]: items}, resolve);
+    });
+}
+
+
 function getLocale() {
     try {
         const parsedUrl = new URL(window.location.href);
@@ -32,7 +47,7 @@ function updateTitle(isRemoved) {
     });
 }
 
-(function addHideToggleButton() {
+(async function addHideToggleButton() {
     const match = window.location.pathname.match(/\/item\/[^/]+\/(\d+)\//);
     if (!match) return;
 
@@ -40,7 +55,7 @@ function updateTitle(isRemoved) {
     const buttonsContainer = document.querySelector('.item-title__buttons');
     if (!buttonsContainer) return;
 
-    const hiddenItems = JSON.parse(localStorage.getItem(HIDDEN_ITEMS_KEY) || '[]');
+    const hiddenItems = await getHiddenItems();
     let isHidden = hiddenItems.includes(itemId);
     updateTitle(isHidden);
 
@@ -51,8 +66,9 @@ function updateTitle(isRemoved) {
         : (locale === 'ru' ? hideTextRu : hideTextEt);
     toggleBtn.textContent = isHidden ? '✚' : '🗙';
 
-    toggleBtn.addEventListener('click', () => {
-        const updated = new Set(JSON.parse(localStorage.getItem(HIDDEN_ITEMS_KEY) || '[]'));
+    toggleBtn.addEventListener('click', async () => {
+        const hiddenItems = await getHiddenItems();
+        const updated = new Set(hiddenItems);
 
         if (updated.has(itemId)) {
             updated.delete(itemId);
@@ -66,62 +82,54 @@ function updateTitle(isRemoved) {
             updateTitle(true);
         }
 
-        localStorage.setItem(HIDDEN_ITEMS_KEY, JSON.stringify([...updated]));
+        await saveHiddenItems([...updated]);
     });
 
     buttonsContainer.appendChild(toggleBtn);
 })();
 
 
-function hide200Items(url200) {
-    fetch(url200)
-        .then(resp => resp.text())
-        .then(htmlText => {
-            const parser = new DOMParser();
-            const doc = parser.parseFromString(htmlText, 'text/html');
+async function hidePageItems(pageUrl) {
+    try {
+        const response = await fetch(pageUrl);
+        const htmlText = await response.text();
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(htmlText, 'text/html');
 
-            const items = doc.querySelectorAll('li.classifieds__item');
+        const items = doc.querySelectorAll('li.classifieds__item');
 
-            if (!items.length) {
-                alert('No items found.');
-                return;
-            }
+        if (!items.length) {
+            alert('No items found.');
+            return;
+        }
 
-            let hiddenItems = [];
-            try {
-                hiddenItems = JSON.parse(localStorage.getItem(HIDDEN_ITEMS_KEY)) || [];
-            } catch {
-                hiddenItems = [];
-            }
+        const hiddenItems = await getHiddenItems();
+        const updatedItems = [...hiddenItems];
 
-            items.forEach(item => {
-                const favBtn = item.querySelector('button.fav-button[data-iid]');
-                if (favBtn) {
-                    const id = favBtn.getAttribute('data-iid');
-                    if (id && !hiddenItems.includes(id)) {
-                        hiddenItems.push(id);
-                    }
+        items.forEach(item => {
+            const favBtn = item.querySelector('button.fav-button[data-iid]');
+            if (favBtn) {
+                const id = favBtn.getAttribute('data-iid');
+                if (id && !updatedItems.includes(id)) {
+                    updatedItems.push(id);
                 }
-            });
-
-            localStorage.setItem(HIDDEN_ITEMS_KEY, JSON.stringify(hiddenItems));
-        })
-        .catch(err => {
-            alert('Failed to load or parse items: ' + err);
+            }
         });
+
+        await saveHiddenItems(updatedItems);
+    } catch (err) {
+        alert('Failed to load or parse items: ' + err);
+    }
 }
 
 function addHideUsersAllItemsButton() {
     const footer = document.querySelector('.user-block__popup-footer');
-    if (!footer) return;
-
     const userLink = footer.querySelector('a[href*="/buy/all/"]');
-    if (!userLink) return;
-
     let baseUrl = userLink.getAttribute('href');
-    if (!baseUrl) {
+    if (!footer || !userLink || !baseUrl) {
         return;
     }
+
     let fullUrl = new URL(baseUrl, window.location.origin);
     fullUrl.searchParams.set('pp', '200');
 
@@ -129,8 +137,8 @@ function addHideUsersAllItemsButton() {
     let urls = [];
     if (userItemsMatch) {
         const totalItems = Number(userItemsMatch[1].replace(/\s+/g, ''));
-        const pages = Math.ceil(totalItems / 200);
-        for (let i = 1; i <= pages; i++) {
+        const pagesAmount = Math.ceil(totalItems / 200);
+        for (let i = 1; i <= pagesAmount; i++) {
             fullUrl.searchParams.set('p', i);
             let pageUrl = fullUrl.pathname + '?' + fullUrl.searchParams.toString();
             urls.push(pageUrl);
@@ -152,7 +160,7 @@ function addHideUsersAllItemsButton() {
     btn.addEventListener('click', async function (e) {
         e.preventDefault();
         for (const url of urls) {
-            hide200Items(url);
+            hidePageItems(url);
             await sleep(1000);
         }
     });

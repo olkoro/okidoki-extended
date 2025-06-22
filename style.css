@@ -1,0 +1,21 @@
+body {
+    min-width: 300px;
+    padding: 10px;
+}
+
+#stats {
+    margin: 10px 0;
+}
+
+#clearHidden {
+    background-color: #ff4444;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+#clearHidden:hover {
+    background-color: #ff6666;
+}

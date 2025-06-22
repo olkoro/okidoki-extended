@@ -1,6 +1,6 @@
 {
   "manifest_version": 3,
-  "name": "okidoki extended edition",
+  "name": "okidoki extended",
   "version": "1.0",
   "description": "allows hiding unwanted items",
   "icons": {
@@ -28,7 +28,8 @@
     }
   ],
   "permissions": [
-    "scripting"
+    "scripting",
+    "storage"
   ],
   "host_permissions": [
     "https://www.okidoki.ee/*"
